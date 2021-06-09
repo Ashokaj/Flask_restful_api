@@ -1,28 +1,33 @@
-from flask_restful import Resource,reqparse
-from models.user import UserModule
-   
+import sqlite3
+from db import db
 
-class UserRegistator(Resource):
-    parser = reqparse.RequestParser()
+class UserModule(db.Model):
+    __tablename__ = 'users'
 
-    parser.add_argument('username',
-        type = str,
-        required = True,
-        help = "This should not live blank.")
+    id = db.Column(db.Integer,primary_key=True)
+    username = db.Column(db.String(80))
+    password = db.Column(db.String(80))
 
-    parser.add_argument('password',
-        type = str,
-        required = True,
-        help = "This should not live blank.")
+    def __init__(self,username,password):
+        self.username = username
+        self.password = password
 
-    def post(self):
-        data = UserRegistator.parser.parse_args()
-        if UserModule.find_by_username(data['username']):
-            return {"message":"A user is allready existes"},401
+    def save_to_db(self):
+        db.session.add(self)
+        db.session.commit()
 
-        user = UserModule(**data)
-        user.save_to_db()
+    @classmethod
+    def find_by_username(cls,username):
+        user =cls.query.filter_by(username=username).first()
+        if user:
+            return user
+        return None
 
-        return {"message":"created user sucesfully"},201
+    @classmethod
+    def find_by_id(cls,_id):
+        user =cls.query.filter_by(id=_id).first()
+        if user:
+            return user
+        return None
 
-
+        

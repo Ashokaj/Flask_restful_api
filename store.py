@@ -1,35 +1,28 @@
-from re import S
-from flask_restful import Resource
-from models.store import StoreModel
+from db import db 
 
-class Store(Resource):
-    def get(self,name):
-        store = StoreModel.find_by_name(name)
-        if store:
-            return store.json()
-        return {"message":"store not found"}
+class StoreModel(db.Model):
+    __tablename__ = 'store'
+    id = db.Column(db.Integer,primary_key=True)
+    name = db.Column(db.String(80))
+    items = db.relationship('ItemModel',lazy ='dynamic')
 
-    def post(self,name):
-        if StoreModel.find_by_name(name):
-            return {"message":"A store with name'{}' allredy exists.".format(name)},400
+    def __init__(self,name):
+        self.name = name
+            
+    def json(self):
+        return {'name':self.name,'items':[item.json() for item in self.items.all()]}
 
-        store = StoreModel(name)
-        try:
-            store.save_to_db()
-        except:
-            return {"message":"An error occured while creating the store."},500
+    @classmethod
+    def find_by_name(cls,name):
+        user = cls.query.filter_by(name = name).first()
+        if user:
+            return user
+        return None
+        
+    def save_to_db(self):
+        db.session.add(self)
+        db.session.commit()
 
-        return store.json(),201
-
-    def delete(self,name):
-        store =StoreModel.find_by_name(name)
-        if store:
-            store.delete_from_db()
-
-        return {'message':'store deleted'}
-
-
-class StoreList(Resource):
-    def get(self):
-        return {'stores':[store.json() for store in StoreModel.query.all()]}
-
+    def delete_from_db(self):
+        db.session.delete(self)
+        db.session.commit()
